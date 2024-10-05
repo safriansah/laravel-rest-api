@@ -3,43 +3,50 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\AuthenticationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-class AuthController extends Controller
+class AuthController extends BaseController
 {
+    protected $authService;
+
+    public function __construct()
+    {
+        $this->authService = new AuthenticationService();
+    }
     //
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required'
-        ]);
+        return $this->handleRequest(function () use ($request) {
+            $request->validate([
+                'email' => 'required|email',
+                'password' => 'required'
+            ]);
 
-        if (Auth::guard('web')->attempt($credentials)) {
-            $user = User::where('email', $request->email)->firstOrFail();
-            $token = $user->createToken('JualMobilToken')->plainTextToken;
-            return response()->json(['token' => $token, 'user' => $user]);
-        }
-
-        return response()->json(['message' => 'Invalid login credentials'], 401);
+            return $this->authService->login($request->email, $request->password);
+        }, false);
     }
 
     // Logout
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
-        return response()->json(['message' => 'Logged out successfully']);
+        return $this->handleRequest(function () use ($request) {
+            $request->user()->currentAccessToken()->delete();
+            return $request->user();
+        }, false);
     }
 
     // Profile
     public function profile(Request $request)
     {
-        return response()->json($request->user());
+        return $this->handleRequest(function () use ($request) {
+            return $request->user();
+        }, false);
     }
 
     public function unauthenticated()
     {
-        return response()->json(['error' => 'Unauthenticated'], 401);
+        return $this->sendResponse(true, 401, 'Unauthenticated');
     }
 }
