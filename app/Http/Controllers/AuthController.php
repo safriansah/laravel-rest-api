@@ -21,7 +21,7 @@ class AuthController extends BaseController
         return $this->handleRequest(function () use ($request) {
             $request->validate([
                 'email' => 'required|email',
-                'password' => 'required'
+                'password' => 'required|string|min:8'
             ]);
 
             return $this->authService->login($request->email, $request->password);
